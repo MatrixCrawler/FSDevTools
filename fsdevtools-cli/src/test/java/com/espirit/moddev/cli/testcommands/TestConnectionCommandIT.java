@@ -24,10 +24,14 @@ package com.espirit.moddev.cli.testcommands;
 
 import com.espirit.moddev.cli.api.result.Result;
 import com.espirit.moddev.cli.commands.test.TestConnectionCommand;
+import com.espirit.moddev.serverrunner.FirstSpiritJar;
 import com.espirit.moddev.serverrunner.NativeServerRunner;
 import com.espirit.moddev.serverrunner.ServerProperties;
-import com.sun.corba.se.spi.activation.Server;
-import org.junit.*;
+
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import java.io.File;
@@ -46,16 +50,16 @@ public class TestConnectionCommandIT extends AbstractIntegrationTest {
 
     @BeforeClass
     public static void startServer() {
-        Optional<File> serverJarFileFromClasspath = ServerProperties.getServerJarFileFromClasspath();
-        Optional<File> wrapperJarFileFromClasspath = ServerProperties.getWrapperJarFileFromClasspath();
+        Optional<File> serverJarFileFromClasspath = FirstSpiritJar.SERVER.tryFindOnClasspath();
+        Optional<File> wrapperJarFileFromClasspath = FirstSpiritJar.WRAPPER.tryFindOnClasspath();
         Assert.assertTrue("FirstSpirit server jar should be present on the classpath", serverJarFileFromClasspath.isPresent());
         Assert.assertTrue("FirstSpirit wrapper jar should be present on the classpath", wrapperJarFileFromClasspath.isPresent());
 
         Path fsServerRoot = new File(System.getProperty("fsServerRoot")).toPath();
 
         ServerProperties serverProperties = ServerProperties.builder()
-                .firstSpiritJar(serverJarFileFromClasspath.get())
-                .firstSpiritJar(wrapperJarFileFromClasspath.get())
+                .firstSpiritJar(FirstSpiritJar.SERVER, serverJarFileFromClasspath.get())
+                .firstSpiritJar(FirstSpiritJar.WRAPPER, wrapperJarFileFromClasspath.get())
                 .serverRoot(fsServerRoot)
                 .build();
         NativeServerRunner serverRunner = new NativeServerRunner(serverProperties);

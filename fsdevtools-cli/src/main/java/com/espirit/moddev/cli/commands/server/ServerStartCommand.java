@@ -23,26 +23,34 @@
 package com.espirit.moddev.cli.commands.server;
 
 import com.espirit.moddev.cli.results.SimpleResult;
+import com.espirit.moddev.serverrunner.FirstSpiritJar;
 import com.espirit.moddev.serverrunner.NativeServerRunner;
 import com.espirit.moddev.serverrunner.ServerProperties;
 import com.espirit.moddev.serverrunner.ServerProperties.ServerPropertiesBuilder;
 import com.espirit.moddev.serverrunner.ServerRunner;
+import com.espirit.moddev.serverrunner.ServerType;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.help.Examples;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static java.time.temporal.ChronoUnit.SECONDS;
 
@@ -162,12 +170,17 @@ public class ServerStartCommand extends AbstractServerCommand implements com.esp
 
     private void addServerJarsToBuilder(ServerPropertiesBuilder serverPropertiesBuilder) {
         if(useServerInstallationDirectory()) {
-            LOGGER.info(String.format("Server installation directory given: %s", serverInstallationDirectory));
-            Path serverJarInInstallationDir = Paths.get(serverInstallationDirectory, "server", "lib", "fs-server.jar");
-            Path wrapperJarInInstallationDir = Paths.get(serverInstallationDirectory, "server", "lib", "wrapper.jar");
-            if(serverJarInInstallationDir.toFile().exists() && wrapperJarInInstallationDir.toFile().exists()) {
-                LOGGER.warn("Server and wrapper jar found in server installation directory.");
-                serverPropertiesBuilder.firstSpiritJar(serverJarInInstallationDir.toFile()).firstSpiritJar(wrapperJarInInstallationDir.toFile());
+            LOGGER.info("Server installation directory given: {}", serverInstallationDirectory);
+            Path serverInstallationDir = Paths.get(serverInstallationDirectory);
+
+            Optional<Map<FirstSpiritJar, File>> jars = Arrays.stream(ServerType.values())
+                .map(serverType -> serverType.resolveJars(serverInstallationDir))
+                .filter(jarsByServerType -> jarsByServerType.values().stream().allMatch(File::exists))
+                .findFirst();
+
+            if (jars.isPresent()) {
+                LOGGER.info("Server and wrapper jar found in server installation directory.");
+                serverPropertiesBuilder.firstSpiritJars(jars.get());
             } else {
                 LOGGER.warn("Server and/or wrapper jar couldn't be retrieved from the given server installation directory. Fallback to jar parameters.");
                 addServerJarsFromOptionsOrClasspath(serverPropertiesBuilder);
@@ -179,14 +192,45 @@ public class ServerStartCommand extends AbstractServerCommand implements com.esp
 
     private void addServerJarsFromOptionsOrClasspath(ServerPropertiesBuilder serverPropertiesBuilder) {
         if(this.serverJar != null && this.wrapperJar != null) {
-            serverPropertiesBuilder.firstSpiritJar(new File(this.serverJar)).firstSpiritJar(new File(this.wrapperJar));
-        } else {
-            List<File> jars = ServerProperties.getFirstSpiritJarsFromClasspath();
-            if(!jars.isEmpty()) {
-                serverPropertiesBuilder.firstSpiritJars(jars);
-            } else {
-                LOGGER.warn("Server and/or wrapper jar couldn't be retrieved from classpath.");
+            final File serverJarFile = new File(this.serverJar);
+            final FirstSpiritJar firstSpiritJar;
+            try {
+                firstSpiritJar = recognizeServerJar(serverJarFile);
+                serverPropertiesBuilder
+                    .firstSpiritJar(firstSpiritJar, serverJarFile)
+                    .firstSpiritJar(FirstSpiritJar.WRAPPER, new File(this.wrapperJar));
+            } catch (IOException e) {
+                addServerJarsFromClasspath(serverPropertiesBuilder);
             }
+        } else {
+            addServerJarsFromClasspath(serverPropertiesBuilder);
+        }
+    }
+
+    private void addServerJarsFromClasspath(ServerPropertiesBuilder serverPropertiesBuilder) {
+        Map<FirstSpiritJar, File> jars = ServerProperties.getFirstSpiritJarsFromClasspath();
+        if(!jars.isEmpty()) {
+            serverPropertiesBuilder.firstSpiritJars(jars);
+        } else {
+            LOGGER.warn("Server and/or wrapper jar couldn't be retrieved from classpath.");
+        }
+    }
+
+    private FirstSpiritJar recognizeServerJar(final File jarFile) throws IOException {
+        try (URLClassLoader loader = new URLClassLoader(new URL[]{ jarFile.toURI().toURL() })) {
+            return Stream.of(FirstSpiritJar.SERVER, FirstSpiritJar.ISOLATED_SERVER)
+                .filter(jar -> classLoaderContains(jar, loader))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(jarFile.getAbsolutePath() + " could not be recognized as a FirstSpirit server jarFile."));
+        }
+    }
+
+    private boolean classLoaderContains(FirstSpiritJar jar,  ClassLoader classLoader) {
+        try {
+            classLoader.loadClass(jar.getClassname());
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
         }
     }
 

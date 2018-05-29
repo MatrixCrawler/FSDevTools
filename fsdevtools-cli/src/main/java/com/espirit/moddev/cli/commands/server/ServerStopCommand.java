@@ -28,10 +28,12 @@ import com.espirit.moddev.serverrunner.ServerProperties;
 import com.espirit.moddev.serverrunner.ServerRunner;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.help.Examples;
-import java.io.File;
-import java.nio.file.Path;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.nio.file.Path;
 
 @Command(name = "stop", groupNames = "server", description = "Stops a FirstSpirit server. Needs an fs-access.jar on the classpath. "+
         "WARNING: If you execute commands asynchronously, you may end up in unpredictable behavior.")
@@ -62,7 +64,8 @@ public class ServerStopCommand extends AbstractServerCommand implements com.espi
                 .serverHost(getHost())
                 .serverPort(getPort())
                 .serverAdminPw(getPassword())
-                .firstSpiritJar(ServerProperties.getAccessJarFileFromClasspath().get())
+                // TODO DEVEX-159
+                //.firstSpiritJar(ServerProperties.getAccessJarFileFromClasspath().get())
                 .serverRoot(serverRootPath)
                     .build();
             final ServerRunner serverRunner = createRunner(serverProperties);

@@ -18,7 +18,7 @@ import scala.util.Try
 
 class ServerPropertiesSpec extends UnitSpec with GeneratorDrivenPropertyChecks with Matchers {
 
-  private val fakeJars = Seq(new File("foobar")).asJava
+  private val fakeJars = Map(FirstSpiritJar.SERVER -> new File("foobar")).asJava
 
   "ServerProperties constructor, parameter serverRoot" should "use a default parameter if given null" in {
     assert(
@@ -50,7 +50,7 @@ class ServerPropertiesSpec extends UnitSpec with GeneratorDrivenPropertyChecks w
     }
   }
   it should "be set to 8000 for connection mode HTTP_MODE if no port is given explicitly" in {
-    assert(ServerProperties.builder().firstSpiritJar(new File("foobar")).build().getServerPort == 8000)
+    assert(ServerProperties.builder().firstSpiritJar(FirstSpiritJar.SERVER, new File("foobar")).build().getServerPort == 8000)
   }
 
   def objWithRetryWait(retryWait: Duration) =

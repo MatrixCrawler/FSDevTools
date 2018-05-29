@@ -25,8 +25,10 @@ package com.espirit.moddev.cli.testcommands;
 import com.espirit.moddev.IntegrationTest;
 import com.espirit.moddev.cli.commands.server.ServerStartCommand;
 import com.espirit.moddev.cli.results.SimpleResult;
+import com.espirit.moddev.serverrunner.FirstSpiritJar;
 import com.espirit.moddev.serverrunner.NativeServerRunner;
 import com.espirit.moddev.serverrunner.ServerProperties;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -34,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -55,7 +57,7 @@ public class ServerStartCommandIT extends AbstractIntegrationTest {
 
         serverPropertiesBuilder.serverRoot(new File(System.getProperty("fsServerRoot")).toPath());
 
-        List<File> jarsFromClasspath = ServerProperties.getFirstSpiritJarsFromClasspath();
+        Map<FirstSpiritJar, File> jarsFromClasspath = ServerProperties.getFirstSpiritJarsFromClasspath();
         Assert.assertThat("The FirstSpirit and wrapper jars couldn't be found on the classpath!", jarsFromClasspath.size(), is(greaterThanOrEqualTo(2)));
 
         ServerProperties serverProperties = serverPropertiesBuilder.firstSpiritJars(jarsFromClasspath).build();

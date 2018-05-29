@@ -1,8 +1,10 @@
 package com.espirit.moddev.serverrunner;
 
-import lombok.extern.slf4j.Slf4j;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -11,11 +13,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.function.Supplier;
+
+import lombok.extern.slf4j.Slf4j;
 
 import static java.util.stream.Collectors.joining;
 
@@ -147,8 +158,14 @@ public class NativeServerRunner implements ServerRunner {
         }
         args.add("-Dcmsroot=" + fsServerRoot);
         args.add("-Djava.security.policy=" + fsServerRoot.resolve("conf").resolve("fs-server.policy"));
-        args.addAll(Arrays.asList("-cp", serverProperties.getFirstSpiritJars().stream().map(File::toString).collect(joining(String.valueOf(java.io.File.pathSeparatorChar)))));
-        args.add("de.espirit.firstspirit.server.CMSServer");
+        args.addAll(Arrays.asList("-cp", serverProperties.getFirstSpiritJars().values().stream().map(File::toString).collect(joining(String.valueOf(java.io.File.pathSeparatorChar)))));
+
+        FirstSpiritJar startUpJar = serverProperties.getFirstSpiritJars().keySet().stream()
+            .filter(jar -> jar == FirstSpiritJar.SERVER || jar == FirstSpiritJar.ISOLATED_SERVER)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("Neither server nor isolated-server jar could be found. Will not start a server"));
+
+        args.add(startUpJar.getClassname());
 
         return args;
     }
@@ -228,7 +245,7 @@ public class NativeServerRunner implements ServerRunner {
     static List<String> prepareStop(final ServerProperties serverProperties) {
         final List<String> args = new ArrayList<>();
         args.add("java");
-        args.addAll(Arrays.asList("-cp", serverProperties.getFirstSpiritJars().stream().map(File::toString).collect(joining(String.valueOf(java.io.File.pathSeparatorChar)))));
+        args.addAll(Arrays.asList("-cp", serverProperties.getFirstSpiritJars().values().stream().map(File::toString).collect(joining(String.valueOf(java.io.File.pathSeparatorChar)))));
         args.add("-Dhost=" + serverProperties.getServerHost());
         args.add("-Dport=" + serverProperties.getServerPort());
         args.add("-Dmode=HTTP");
