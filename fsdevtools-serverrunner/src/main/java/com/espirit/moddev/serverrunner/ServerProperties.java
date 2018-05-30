@@ -13,9 +13,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
@@ -208,9 +206,12 @@ public class ServerProperties {
      * @return a list with one or two jar files or an empty list, if none of them can be found
      */
     public static Map<FirstSpiritJar, File> getFirstSpiritJarsFromClasspath() {
-        return Arrays.stream(FirstSpiritJar.values())
-            .map(jar -> new AbstractMap.SimpleEntry<>(jar, jar.tryFindOnClasspath()))
-            .filter(optionalJarFile -> optionalJarFile.getValue().isPresent())
-            .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, optionalJarFile -> optionalJarFile.getValue().get()));
+        final Map<FirstSpiritJar, File> jars = new EnumMap<>(FirstSpiritJar.class);
+        for (FirstSpiritJar firstSpiritJar : FirstSpiritJar.values()) {
+            firstSpiritJar
+                .tryFindOnClasspath()
+                .ifPresent(file -> jars.put(firstSpiritJar, file));
+        }
+        return jars;
     }
 }

@@ -58,11 +58,6 @@
         </dependency>
 
         <dependency>
-            <groupId>de.espirit.firstspirit</groupId>
-            <artifactId>fs-access</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
@@ -78,6 +73,12 @@
             <artifactId>fast-classpath-scanner</artifactId>
             <version>2.9.4</version>
         </dependency>
+
+        <!--<dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>25.1-jre</version>
+        </dependency>-->
 
         <!-- Logging -->
         <dependency>
